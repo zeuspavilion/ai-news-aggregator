@@ -24,34 +24,81 @@ def generate_email_digest(hours: int = 24, top_n: int = 10) -> EmailDigestRespon
     repo = Repository()
     
     digests = repo.get_recent_digests(hours=hours)
-    total = len(digests)
+    clusters = repo.get_recent_clusters(hours=hours)
     
+    # Build list of items to rank (clusters + unclustered digests)
+    items = []
+    clustered_ids = set()
+    for c in clusters:
+        clustered_ids.update(c["member_ids"])
+        items.append({
+            "id": c["id"],
+            "title": c["title"],
+            "summary": c["master_summary"],
+            "url": "",
+            "article_type": "cluster",
+            "member_ids": c["member_ids"]
+        })
+        
+    for d in digests:
+        if d["id"] not in clustered_ids:
+            items.append({
+                "id": d["id"],
+                "title": d["title"],
+                "summary": d["summary"],
+                "url": d["url"],
+                "article_type": d["article_type"],
+                "member_ids": []
+            })
+            
+    total = len(items)
     if total == 0:
-        logger.warning(f"No digests found from the last {hours} hours")
-        raise ValueError("No digests available")
+        logger.warning(f"No digests or clusters found from the last {hours} hours")
+        raise ValueError("No digests or clusters available")
     
-    logger.info(f"Ranking {total} digests for email generation")
-    ranked_articles = curator.rank_digests(digests)
+    logger.info(f"Ranking {total} items (clusters and unclustered digests) for email generation")
+    ranked_articles = curator.rank_digests(items)
     
     if not ranked_articles:
-        logger.error("Failed to rank digests")
-        raise ValueError("Failed to rank articles")
+        logger.error("Failed to rank items")
+        raise ValueError("Failed to rank items")
     
     logger.info(f"Generating email digest with top {top_n} articles")
     
-    article_details = [
-        RankedArticleDetail(
-            digest_id=a.digest_id,
-            rank=a.rank,
-            relevance_score=a.relevance_score,
-            reasoning=a.reasoning,
-            title=next((d["title"] for d in digests if d["id"] == a.digest_id), ""),
-            summary=next((d["summary"] for d in digests if d["id"] == a.digest_id), ""),
-            url=next((d["url"] for d in digests if d["id"] == a.digest_id), ""),
-            article_type=next((d["article_type"] for d in digests if d["id"] == a.digest_id), "")
+    article_details = []
+    for a in ranked_articles:
+        matching_item = next((item for item in items if item["id"] == a.digest_id), None)
+        if not matching_item:
+            continue
+            
+        member_sources = []
+        url = matching_item["url"]
+        
+        if matching_item["article_type"] == "cluster":
+            for m_id in matching_item["member_ids"]:
+                m_digest = next((d for d in digests if d["id"] == m_id), None)
+                if m_digest:
+                    member_sources.append({
+                        "title": m_digest["title"],
+                        "url": m_digest["url"],
+                        "article_type": m_digest["article_type"]
+                    })
+            if member_sources:
+                url = member_sources[0]["url"]
+                
+        article_details.append(
+            RankedArticleDetail(
+                digest_id=a.digest_id,
+                rank=a.rank,
+                relevance_score=a.relevance_score,
+                reasoning=a.reasoning,
+                title=matching_item["title"],
+                summary=matching_item["summary"],
+                url=url,
+                article_type=matching_item["article_type"],
+                member_sources=member_sources if member_sources else None
+            )
         )
-        for a in ranked_articles
-    ]
     
     email_digest = email_agent.create_email_digest_response(
         ranked_articles=article_details,

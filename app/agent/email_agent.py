@@ -18,6 +18,7 @@ class RankedArticleDetail(BaseModel):
     url: str
     article_type: str
     reasoning: Optional[str] = None
+    member_sources: Optional[List[dict]] = None
 
 
 class EmailDigestResponse(BaseModel):
@@ -34,7 +35,17 @@ class EmailDigestResponse(BaseModel):
         for article in self.articles:
             markdown += f"## {article.title}\n\n"
             markdown += f"{article.summary}\n\n"
-            markdown += f"[Read more →]({article.url})\n\n"
+            if article.article_type == "cluster" and article.member_sources:
+                sources = []
+                for s in article.member_sources:
+                    name = s.get("title", "")
+                    # shorten long titles for cleaner display
+                    short_name = name[:40] + "..." if len(name) > 40 else name
+                    source_type = s.get("article_type", "link").upper()
+                    sources.append(f"[{source_type}: {short_name}]({s.get('url')})")
+                markdown += f"**Sources:** {' | '.join(sources)}\n\n"
+            else:
+                markdown += f"[Read more →]({article.url})\n\n"
             markdown += "---\n\n"
         
         return markdown

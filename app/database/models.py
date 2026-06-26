@@ -55,3 +55,14 @@ class Digest(Base):
     summary = Column(Text, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
+
+class DigestCluster(Base):
+    __tablename__ = "digest_clusters"
+    
+    id = Column(String, primary_key=True)
+    title = Column(String, nullable=False)
+    master_summary = Column(Text, nullable=False)
+    member_ids = Column(Text, nullable=False)  # Comma-separated Digest IDs
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+

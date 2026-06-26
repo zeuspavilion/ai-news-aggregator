@@ -12,6 +12,7 @@ from app.services.process_anthropic import process_anthropic_markdown
 from app.services.process_youtube import process_youtube_transcripts
 from app.services.process_digest import process_digests
 from app.services.process_email import send_digest_email
+from app.services.process_clustering import process_clustering
 
 logging.basicConfig(
     level=logging.INFO,
@@ -32,6 +33,7 @@ def run_daily_pipeline(hours: int = 24, top_n: int = 10) -> dict:
         "scraping": {},
         "processing": {},
         "digests": {},
+        "clustering": {},
         "email": {},
         "success": False
     }
@@ -66,6 +68,12 @@ def run_daily_pipeline(hours: int = 24, top_n: int = 10) -> dict:
         logger.info(f"✓ Created {digest_result['processed']} digests "
                     f"({digest_result['failed']} failed out of {digest_result['total']} total)")
         
+        logger.info("\n[4.5/5] Clustering digests...")
+        clustering_result = process_clustering(hours=hours)
+        results["clustering"] = clustering_result
+        logger.info(f"✓ Created {clustering_result['total_clusters']} clusters "
+                    f"({clustering_result['clustered_digests']} digests clustered)")
+        
         logger.info("\n[5/5] Generating and sending email digest...")
         email_result = send_digest_email(hours=hours, top_n=top_n)
         results["email"] = email_result
@@ -92,6 +100,7 @@ def run_daily_pipeline(hours: int = 24, top_n: int = 10) -> dict:
     logger.info(f"Scraped: {results['scraping']}")
     logger.info(f"Processed: {results['processing']}")
     logger.info(f"Digests: {results['digests']}")
+    logger.info(f"Clustering: {results['clustering']}")
     logger.info(f"Email: {'Sent' if results['success'] else 'Failed'}")
     logger.info("=" * 60)
     

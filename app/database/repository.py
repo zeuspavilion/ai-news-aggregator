@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
-from .models import YouTubeVideo, OpenAIArticle, AnthropicArticle, Digest
+from .models import YouTubeVideo, OpenAIArticle, AnthropicArticle, Digest, DigestCluster
 from .connection import get_session
 
 
@@ -247,5 +247,50 @@ class Repository:
                 "created_at": d.created_at
             }
             for d in digests
+        ]
+
+    def create_digest_cluster(self, id: str, title: str, master_summary: str, member_ids: List[str], created_at: Optional[datetime] = None) -> DigestCluster:
+        existing = self.session.query(DigestCluster).filter_by(id=id).first()
+        member_ids_str = ",".join(member_ids)
+        
+        if not created_at:
+            created_at = datetime.now(timezone.utc)
+        elif created_at.tzinfo is None:
+            created_at = created_at.replace(tzinfo=timezone.utc)
+            
+        if existing:
+            existing.title = title
+            existing.master_summary = master_summary
+            existing.member_ids = member_ids_str
+            existing.created_at = created_at
+            self.session.commit()
+            return existing
+            
+        cluster = DigestCluster(
+            id=id,
+            title=title,
+            master_summary=master_summary,
+            member_ids=member_ids_str,
+            created_at=created_at
+        )
+        self.session.add(cluster)
+        self.session.commit()
+        return cluster
+
+    def get_recent_clusters(self, hours: int = 24) -> List[Dict[str, Any]]:
+        cutoff_time = datetime.now(timezone.utc) - timedelta(hours=hours)
+        clusters = self.session.query(DigestCluster).filter(
+            DigestCluster.created_at >= cutoff_time
+        ).order_by(DigestCluster.created_at.desc()).all()
+        
+        return [
+            {
+                "id": c.id,
+                "title": c.title,
+                "master_summary": c.master_summary,
+                "member_ids": c.member_ids.split(",") if c.member_ids else [],
+                "created_at": c.created_at
+            }
+            for c in clusters
         ]
 

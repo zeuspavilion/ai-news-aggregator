@@ -143,7 +143,16 @@ def digest_to_html(digest_response) -> str:
         html_parts.append(f'<h3>{html.escape(article.title)}</h3>')
         summary_html = markdown.markdown(article.summary, extensions=['extra', 'nl2br'])
         html_parts.append(f'<div>{summary_html}</div>')
-        html_parts.append(f'<p><a href="{html.escape(article.url)}" class="article-link">Read more →</a></p>')
+        if article.article_type == "cluster" and article.member_sources:
+            sources = []
+            for s in article.member_sources:
+                name = s.get("title", "")
+                short_name = name[:40] + "..." if len(name) > 40 else name
+                source_type = s.get("article_type", "link").upper()
+                sources.append(f'<a href="{html.escape(s.get("url", ""))}" class="article-link">{source_type}: {html.escape(short_name)}</a>')
+            html_parts.append(f'<p><strong>Sources:</strong> {" | ".join(sources)}</p>')
+        else:
+            html_parts.append(f'<p><a href="{html.escape(article.url)}" class="article-link">Read more →</a></p>')
         html_parts.append('<hr>')
     
     html_content = '\n'.join(html_parts)
