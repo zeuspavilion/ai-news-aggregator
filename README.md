@@ -1,50 +1,80 @@
-# AI News Aggregator - Live Build Repository
+# AI News Aggregator
 
-This repository accompanies my 3-hour live coding session where I build a complete AI-powered news aggregator from scratch. This is a **private repository** containing valuable implementation details and deployment strategies used in production environments.
+An automated, AI-powered pipeline designed to scrape, summarize, and deliver the latest AI news and updates directly to your inbox. This system consolidates content from diverse sources (such as YouTube transcripts and AI research blogs), utilizes advanced LLM curation to filter signal from noise, and formats the output into a clean, readable daily digest.
+
+---
+
+## Key Features
+
+- **Multi-Source Scraping:** Automated scrapers for OpenAI/Anthropic blogs and specialized YouTube channels using `youtube-transcript-api` and `beautifulsoup4`.
+- **Intelligent Summarization:** Curates and summarizes articles and transcripts utilizing OpenAI's models to extract key takeaways.
+- **PostgreSQL Database Integration:** Tracks processed articles and digests using SQLAlchemy to avoid duplicate processing.
+- **Daily Email Digests:** Formats digested news into clean HTML/Markdown and delivers them automatically via SMTP.
+
+---
+
+## System Architecture
+
+The pipeline processes data sequentially:
+
+```
+Scrape Sources ──> Process Content ──> Generate Digests ──> Event Clustering (New) ──> Send Email
+```
+
+---
+
+## Recent Upgrades
+
+### Event Clustering & Master Summaries (Advanced AI Capabilities)
+Previously, if multiple sources covered the same trending event (e.g., a major model release), the system generated redundant digest items. 
+
+We have introduced a **Cluster Agent** to group related news into a single, cohesive master summary:
+
+1. **Vector Embeddings Clustering:** In `app/agent/cluster_agent.py`, news titles and summaries are converted to vector representations using OpenAI's `text-embedding-3-small` and grouped using cosine similarity (threshold: `0.82`).
+2. **Master Summarization:** For any cluster containing multiple related news items, the `DigestAgent` synthesizes a single unified **Master Summary** to eliminate redundancy.
+3. **Database Caching:** A new `DigestCluster` table stores cluster groupings and synthesized master summaries.
+4. **Email Integration:** The daily digest email displays clustered events under a "🔗 Trending Event" section before showing individual, unclustered updates.
+
+---
 
 ## Project Structure
 
-This project is organized across three branches, each corresponding to a different phase of the build:
+- `app/` - Core application logic:
+  - `agent/` - LLM agents for curation, clustering, and summarization.
+  - `services/` - Scrapers, clustering orchestrator, and email builders.
+  - `models/` - SQLAlchemy models (e.g., `DigestCluster`, `Article`).
+- `main.py` - Single-entry run script for the daily aggregator job.
+- `docker/` - Docker deployment configuration files.
 
-- **`master`** - Part 1: Local setup and core functionality
-- **`deployment`** - Part 2: Deployment configuration and infrastructure
-- **`deployment-final`** - Part 3: Final optimizations and production-ready changes
+---
 
-Each branch serves as an intermediate checkpoint, allowing you to reference the exact state of the codebase at any point during the video.
+## Installation & Setup
 
-## How This Video Works
+1. **Clone the Repository:**
+   ```bash
+   git clone <YOUR_GITHUB_REPO_URL>
+   cd ai-news-aggregator-master
+   ```
 
-This is a **live coding build**, not a traditional step-by-step tutorial. Here's what to expect:
+2. **Configure Environment Variables:**
+   Create a `.env` file in the project root:
+   ```env
+   OPENAI_API_KEY=your-openai-api-key
+   DATABASE_URL=postgresql://username:password@localhost:5432/ai_news_db
+   SMTP_HOST=smtp.gmail.com
+   SMTP_PORT=587
+   SMTP_USER=your-email@gmail.com
+   SMTP_PASSWORD=your-app-password
+   RECEIVER_EMAIL=recipient-email@gmail.com
+   ```
 
-- **Fast-paced development** - I code at my natural pace, leveraging AI tools extensively
-- **AI-assisted workflow** - You won't see every code snippet or file generation in real-time
-- **Real-world approach** - This condenses 20-40 hours of learning into a single session
-- **Not cookie-cutter** - Unlike structured tutorials, this reflects how coding actually happens in practice
+3. **Install Dependencies:**
+   Using `uv` (recommended):
+   ```bash
+   uv sync
+   ```
 
-## How to Follow Along
-
-### Recommended Approach (Maximum Learning)
-
-1. **Clone this repository** before starting the video
-2. **Keep a local copy ready** on your system as you code along
-3. **Use intermediate checkpoints** - When I make major updates or run tests, pause and:
-   - Reference the corresponding branch in this repository
-   - Copy relevant code snippets into your project
-   - Use AI coding assistants to help you reach the same checkpoint
-4. **Iterate step-by-step** - Don't rush ahead. Ensure each phase works before moving forward
-5. **Expect confusion** - Some parts will move fast and may not be immediately clear. This is where real learning happens
-
-### Alternative Approach (Not Recommended)
-
-You can skip ahead to the `deployment-final` branch and try to get everything working, but you'll miss the iterative problem-solving process that makes this valuable.
-
-## Why This Approach?
-
-Traditional tutorials show you the "right way" to do things. This video shows you the **real way** - with AI assistance, rapid iteration, debugging, and adapting on the fly. By following along and hitting the same checkpoints, you'll:
-
-- Learn how to effectively leverage AI coding tools
-- Understand the thought process behind architectural decisions
-- Experience real-world development workflows
-- Build muscle memory through hands-on practice
-
-**The most valuable learning happens when you struggle, reference the code, and push through to the next checkpoint.**
+4. **Run the Pipeline:**
+   ```bash
+   python main.py
+   ```
