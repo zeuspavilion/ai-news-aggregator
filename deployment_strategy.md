@@ -23,7 +23,7 @@ This plan outlines the steps to deploy the daily news aggregator using **GitHub 
 
   on:
     schedule:
-      - cron: '0 9 * * *'  # Runs daily at 9:00 AM UTC
+      - cron: '0 1 * * *'  # Runs daily at 1:00 AM UTC
     workflow_dispatch:     # Allows manual triggering from the GitHub Actions UI
 
   jobs:
