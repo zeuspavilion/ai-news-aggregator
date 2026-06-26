@@ -46,7 +46,7 @@ This plan outlines the steps to deploy the daily news aggregator using **GitHub 
         - name: Install dependencies
           run: |
             uv pip install --system torch --index-url https://download.pytorch.org/whl/cpu
-            uv sync --system
+            uv pip install --system -r requirements.txt
 
         - name: Run Aggregator Pipeline
           env:
