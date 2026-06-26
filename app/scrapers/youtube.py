@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from youtube_transcript_api import YouTubeTranscriptApi
 from youtube_transcript_api._errors import TranscriptsDisabled, NoTranscriptFound
 from youtube_transcript_api.proxies import WebshareProxyConfig
+from app.scrapers.base import BaseScraper
 
 
 class Transcript(BaseModel):
@@ -16,13 +17,14 @@ class ChannelVideo(BaseModel):
     title: str
     url: str
     video_id: str
+    channel_id: Optional[str] = None
     published_at: datetime
     description: str
     transcript: Optional[str] = None
     
 
 # From WEBSHARE website get the usernames,passwords for credentials 
-class YouTubeScraper:
+class YouTubeScraper(BaseScraper):
     def __init__(self):
         proxy_config = None
         proxy_username = os.getenv("PROXY_USERNAME")
@@ -74,11 +76,20 @@ class YouTubeScraper:
                     title=entry.title,
                     url=entry.link,
                     video_id=video_id,
+                    channel_id=channel_id,
                     published_at=published_time,
                     description=entry.get("summary", "")
                 ))
         
         return videos
+
+    def get_articles(self, hours: int = 24) -> List[ChannelVideo]:
+        from app.config import YOUTUBE_CHANNELS
+        videos = []
+        for channel_id in YOUTUBE_CHANNELS:
+            videos.extend(self.get_latest_videos(channel_id, hours=hours))
+        return videos
+
 
     def scrape_channel(self, channel_id: str, hours: int = 150) -> list[ChannelVideo]:
         videos = self.get_latest_videos(channel_id, hours)

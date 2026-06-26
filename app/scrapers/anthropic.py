@@ -3,6 +3,7 @@ from typing import List, Optional
 import feedparser
 from docling.document_converter import DocumentConverter
 from pydantic import BaseModel
+from app.scrapers.base import BaseScraper
 
 
 class AnthropicArticle(BaseModel):
@@ -14,7 +15,7 @@ class AnthropicArticle(BaseModel):
     category: Optional[str] = None
 
 
-class AnthropicScraper:
+class AnthropicScraper(BaseScraper):
     def __init__(self):
         self.rss_urls = [
             "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_anthropic_news.xml",

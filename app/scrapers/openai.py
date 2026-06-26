@@ -3,6 +3,7 @@ from typing import List, Optional
 import feedparser
 from docling.document_converter import DocumentConverter
 from pydantic import BaseModel
+from app.scrapers.base import BaseScraper
 
 
 class OpenAIArticle(BaseModel):
@@ -14,7 +15,7 @@ class OpenAIArticle(BaseModel):
     category: Optional[str] = None
     
 
-class OpenAIScraper:
+class OpenAIScraper(BaseScraper):
     def __init__(self):
         self.rss_url = "https://openai.com/news/rss.xml"
         self.converter = DocumentConverter()

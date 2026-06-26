@@ -28,6 +28,13 @@ def run_daily_pipeline(hours: int = 24, top_n: int = 10) -> dict:
     logger.info("Starting Daily AI News Aggregator Pipeline")
     logger.info("=" * 60)
     
+    logger.info("Initializing database schema...")
+    from app.database.models import Base
+    from app.database.connection import engine
+    Base.metadata.create_all(engine)
+    logger.info("Database schema initialized.")
+
+    
     results = {
         "start_time": start_time.isoformat(),
         "scraping": {},

@@ -1,5 +1,4 @@
 from typing import List
-from .config import YOUTUBE_CHANNELS
 from .scrapers.youtube import YouTubeScraper, ChannelVideo
 from .scrapers.openai import OpenAIScraper, OpenAIArticle
 from .scrapers.anthropic import AnthropicScraper, AnthropicArticle
@@ -12,23 +11,20 @@ def run_scrapers(hours: int = 24) -> dict:
     anthropic_scraper = AnthropicScraper()
     repo = Repository()
     
-    youtube_videos = []
-    video_dicts = []
-    for channel_id in YOUTUBE_CHANNELS:
-        videos = youtube_scraper.get_latest_videos(channel_id, hours=hours)
-        youtube_videos.extend(videos)
-        video_dicts.extend([
-            {
-                "video_id": v.video_id,
-                "title": v.title,
-                "url": v.url,
-                "channel_id": channel_id,
-                "published_at": v.published_at,
-                "description": v.description,
-                "transcript": v.transcript
-            }
-            for v in videos
-        ])
+    # Polymorphic call to get_articles
+    youtube_videos = youtube_scraper.get_articles(hours=hours)
+    video_dicts = [
+        {
+            "video_id": v.video_id,
+            "title": v.title,
+            "url": v.url,
+            "channel_id": v.channel_id,
+            "published_at": v.published_at,
+            "description": v.description,
+            "transcript": v.transcript
+        }
+        for v in youtube_videos
+    ]
     
     openai_articles = openai_scraper.get_articles(hours=hours)
     anthropic_articles = anthropic_scraper.get_articles(hours=hours)
@@ -76,4 +72,5 @@ if __name__ == "__main__":
     print(f"YouTube videos: {len(results['youtube'])}")
     print(f"OpenAI articles: {len(results['openai'])}")
     print(f"Anthropic articles: {len(results['anthropic'])}")
+
 
