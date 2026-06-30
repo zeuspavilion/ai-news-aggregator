@@ -1,80 +1,140 @@
-# AI News Aggregator
+# 🤖 AI News Aggregator
 
-An automated, AI-powered pipeline designed to scrape, summarize, and deliver the latest AI news and updates directly to your inbox. This system consolidates content from diverse sources (such as YouTube transcripts and AI research blogs), utilizes advanced LLM curation to filter signal from noise, and formats the output into a clean, readable daily digest.
+An automated, production-grade AI pipeline designed to scrape, summarize, cluster, and deliver the latest AI news directly to your inbox. 
 
----
-
-## Key Features
-
-- **Multi-Source Scraping:** Automated scrapers for OpenAI/Anthropic blogs and specialized YouTube channels using `youtube-transcript-api` and `beautifulsoup4`.
-- **Intelligent Summarization:** Curates and summarizes articles and transcripts utilizing OpenAI's models to extract key takeaways.
-- **PostgreSQL Database Integration:** Tracks processed articles and digests using SQLAlchemy to avoid duplicate processing.
-- **Daily Email Digests:** Formats digested news into clean HTML/Markdown and delivers them automatically via SMTP.
+This system consolidates updates from diverse sources (such as AI research blogs and YouTube transcripts), filters out noise using advanced LLM curation, groups similar stories together using vector embeddings, and delivers a clean HTML digest newsletter via email.
 
 ---
 
-## System Architecture
+## 🌟 Key Features
 
-The pipeline processes data sequentially:
+*   **Multi-Source Scraping:** Automated parsers for OpenAI/Anthropic blogs and curated YouTube channels using `beautifulsoup4` and `youtube-transcript-api`.
+*   **Vector Event Clustering:** Groups similar stories covering the same topic (e.g., a major model release) into a single unified event using OpenAI's `text-embedding-3-small` and Cosine Similarity, avoiding newsletter redundancy.
+*   **AI Curation & Summarization:** Synthesizes master summaries using OpenAI GPT models, delivering key takeaways with high technical depth.
+*   **Robust Database Layer:** Uses SQLAlchemy (supporting PostgreSQL and SQLite) to cache processed articles and digests, preventing duplicate processing.
+*   **Flexible Deployments:** Supports running as a simple Python CLI, containerized with Docker Compose, or scheduled daily in a production-ready Kubernetes cluster.
+
+---
+
+## 🛠️ System Architecture
+
+The pipeline runs sequentially:
+```
+[Scrape Blogs/YouTube] ──> [Process & Extract Text] ──> [Generate AI Digests] ──> [Cluster Events] ──> [SMTP Email Curation]
+```
+
+---
+
+## 📁 Repository Structure
 
 ```
-Scrape Sources ──> Process Content ──> Generate Digests ──> Event Clustering (New) ──> Send Email
+├── app/                        # Application Codebase
+│   ├── agent/                  # OpenAI Prompt Agents (Curation, Digest, Clustering)
+│   ├── database/               # SQL Connection, Models, and Repository Queries
+│   ├── profiles/               # User interest preferences (for personalized ranking)
+│   ├── scrapers/               # Blog and YouTube RSS scrapers
+│   └── services/               # Curation pipelines, text parsing, and email services
+├── kubernetes/                 # Production Kubernetes Orchestration
+│   ├── configmap.yaml          # K8s ConfigMap for non-sensitive variables
+│   ├── secrets.yaml            # K8s Secrets for credentials/passwords
+│   ├── postgres-deployment.yaml# PostgreSQL Deployment, PVC, and Service
+│   ├── cronjob.yaml            # Daily scheduled Scraper Job
+│   └── README.md               # K8s execution guide
+├── Dockerfile                  # Containerization image build configuration
+├── main.py                     # CLI entrypoint for running the pipeline
+└── requirements.txt            # System dependency lock list
 ```
 
 ---
 
-## Recent Upgrades
+## ⚙️ Environment Configuration
 
-### Event Clustering & Master Summaries (Advanced AI Capabilities)
-Previously, if multiple sources covered the same trending event (e.g., a major model release), the system generated redundant digest items. 
+Create a `.env` file in the root directory for local runs, or configure these values in Kubernetes (`kubernetes/secrets.yaml` and `kubernetes/configmap.yaml`):
 
-We have introduced a **Cluster Agent** to group related news into a single, cohesive master summary:
+| Variable Name | Description | Example Value |
+| :--- | :--- | :--- |
+| `OPENAI_API_KEY` | Your OpenAI API key for digests and clustering | `sk-proj-...` |
+| `MY_EMAIL` | The Gmail address used to log in and send the email | `sender@gmail.com` |
+| `APP_PASSWORD` | A 16-letter Gmail App Password (no spaces) | `vdwlrtbrcsqqenqa` |
+| `POSTGRES_USER` | Database username | `postgres` |
+| `POSTGRES_PASSWORD`| Database password | `postgres` |
+| `POSTGRES_HOST` | Database host address | `localhost` or `postgres-service` |
+| `POSTGRES_PORT` | Database port number | `5432` |
+| `POSTGRES_DB` | Name of the database | `ai_news_aggregator` |
 
-1. **Vector Embeddings Clustering:** In `app/agent/cluster_agent.py`, news titles and summaries are converted to vector representations using OpenAI's `text-embedding-3-small` and grouped using cosine similarity (threshold: `0.82`).
-2. **Master Summarization:** For any cluster containing multiple related news items, the `DigestAgent` synthesizes a single unified **Master Summary** to eliminate redundancy.
-3. **Database Caching:** A new `DigestCluster` table stores cluster groupings and synthesized master summaries.
-4. **Email Integration:** The daily digest email displays clustered events under a "🔗 Trending Event" section before showing individual, unclustered updates.
+> [!TIP]
+> **Getting a Gmail App Password:**
+> 1. Go to your Google Account Settings -> Security.
+> 2. Enable **2-Step Verification** (required by Google to use App Passwords).
+> 3. Search for **App Passwords** in the search bar.
+> 4. Choose a custom name (e.g. "AI News Aggregator") and copy the generated 16-character code. **Remove all spaces** when pasting it into your configuration.
 
 ---
 
-## Project Structure
+## 🚀 How to Run the Project
 
-- `app/` - Core application logic:
-  - `agent/` - LLM agents for curation, clustering, and summarization.
-  - `services/` - Scrapers, clustering orchestrator, and email builders.
-  - `models/` - SQLAlchemy models (e.g., `DigestCluster`, `Article`).
-- `main.py` - Single-entry run script for the daily aggregator job.
-- `docker/` - Docker deployment configuration files.
+You can run the aggregator in three different ways:
 
----
+### Option 1: Run Locally (Python CLI)
 
-## Installation & Setup
+Perfect for quick local testing. Uses SQLite by default.
 
-1. **Clone the Repository:**
+1. **Install dependencies:**
+   Ensure you have Python 3.12+ installed. Install the requirements using `pip`:
    ```bash
-   git clone <YOUR_GITHUB_REPO_URL>
-   cd ai-news-aggregator-master
+   pip install -r requirements.txt
    ```
-
-2. **Configure Environment Variables:**
-   Create a `.env` file in the project root:
-   ```env
-   OPENAI_API_KEY=your-openai-api-key
-   DATABASE_URL=postgresql://username:password@localhost:5432/ai_news_db
-   SMTP_HOST=smtp.gmail.com
-   SMTP_PORT=587
-   SMTP_USER=your-email@gmail.com
-   SMTP_PASSWORD=your-app-password
-   RECEIVER_EMAIL=recipient-email@gmail.com
-   ```
-
-3. **Install Dependencies:**
-   Using `uv` (recommended):
-   ```bash
-   uv sync
-   ```
-
-4. **Run the Pipeline:**
+2. **Setup Environment:**
+   Create your `.env` file using the configuration reference above.
+3. **Execute:**
    ```bash
    python main.py
    ```
+   *(Optionally pass a custom lookback window in hours as an argument, e.g. `python main.py 72` to search the last 3 days).*
+
+---
+
+### Option 2: Run with Docker Compose
+
+Runs PostgreSQL in a container while you execute the scraper from your host machine.
+
+1. **Start the database container:**
+   ```bash
+   docker compose -f docker/docker-compose.yml up -d
+   ```
+2. **Execute the pipeline:**
+   Make sure `POSTGRES_HOST=localhost` and `POSTGRES_PORT=5433` (or the mapped port) are configured in your `.env` file, then run:
+   ```bash
+   python main.py
+   ```
+
+---
+
+### Option 3: Kubernetes Orchestration (Production Ready)
+
+Orchestrates the entire system locally using a single-node cluster (Docker Desktop Kubernetes or Minikube).
+
+1. **Set up Kubernetes:**
+   Make sure Kubernetes is enabled in your Docker Desktop Settings (Settings -> Kubernetes -> Enable Kubernetes).
+2. **Configure Secrets:**
+   Open `kubernetes/secrets.yaml` and paste your actual API keys and plain-text passwords directly under the `stringData:` block.
+3. **Build the Container Image:**
+   Build the image inside your Docker daemon:
+   ```bash
+   docker build -t news-aggregator-scraper:v2 .
+   ```
+4. **Deploy Manifests:**
+   Apply the ConfigMaps, Secrets, PostgreSQL Database, and CronJob schedulers:
+   ```bash
+   kubectl apply -f kubernetes/configmap.yaml
+   kubectl apply -f kubernetes/secrets.yaml
+   kubectl apply -f kubernetes/postgres-deployment.yaml
+   kubectl apply -f kubernetes/cronjob.yaml
+   ```
+5. **Test Trigger Immediately:**
+   Trigger a manual test job and follow the logs to confirm success:
+   ```bash
+   kubectl create job --from=cronjob/news-aggregator-scraper news-aggregator-run-today
+   kubectl logs -f -l job-name=news-aggregator-run-today
+   ```
+   *(For full Kubernetes setup steps and troubleshooting, see the [Kubernetes Guide](kubernetes/README.md)).*
