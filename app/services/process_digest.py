@@ -16,11 +16,11 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def process_digests(limit: Optional[int] = None) -> dict:
+def process_digests(limit: Optional[int] = None, hours: int = 24) -> dict:
     agent = DigestAgent()
     repo = Repository()
     
-    articles = repo.get_articles_without_digest(limit=limit)
+    articles = repo.get_articles_without_digest(limit=limit, hours=hours)
     total = len(articles)
     processed = 0
     failed = 0

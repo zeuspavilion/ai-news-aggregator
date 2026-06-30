@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: news-aggregator-config
+  namespace: default
+data:
+  POSTGRES_HOST: postgres-service
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: ai_news_aggregator
+  POSTGRES_USER: postgres
+  USE_OPENAI_AGENTS: "false"
+  CLUSTER_SIMILARITY_THRESHOLD: "0.82"
+  FALLBACK_JACCARD_THRESHOLD: "0.15"
+  SMTP_HOST: smtp.gmail.com
+  SMTP_PORT: "587"

@@ -98,3 +98,6 @@ playground/*.png
 
 app/google-service-account.json
 latest_digest_preview.md
+
+# Kubernetes Secrets
+kubernetes/secrets.yaml

@@ -1,0 +1,29 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: news-aggregator-scraper
+  namespace: default
+spec:
+  # Schedule: daily at 1:40 AM IST (8:10 PM UTC)
+  schedule: "10 20 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: news-aggregator-scraper
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: scraper
+              image: news-aggregator-scraper:v2
+              imagePullPolicy: IfNotPresent
+              args: ["720"]
+              envFrom:
+                - configMapRef:
+                    name: news-aggregator-config
+                - secretRef:
+                    name: news-aggregator-secrets
